@@ -23,9 +23,7 @@ CFLAGS="-O3 -fno-unit-at-a-time -s -mtune=i686"
 LDFLAGS="-Wl,--enable-auto-import"
 
 PATCH_URI="01-openssh-6.1p1-msys.patch
-           update-configure.patch
-           openssh-6.1p1-hpn13v14.patch
-           openssh-6.1p1-hpn13v14.msys.patch"
+           update-configure.patch"
 
 create_textreadmode() {
   if [ ! -f /usr/lib/textreadmode.o ]; then
