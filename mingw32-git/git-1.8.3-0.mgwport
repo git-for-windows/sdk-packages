@@ -1,8 +1,20 @@
 DESCRIPTION="Git distributed version control system"
 HOMEPAGE="http://git-scm.com/"
 
-SRC_URI="https://github.com/sschuberth/${PN}/archive/v${PV}.mingw.${PR}.tar.gz"
+# git-htmldocs commit which matches the version of git which we will package.
+RELEASE_DOC_COMMIT=b6595471f5299e8b13181e09072b486dd0ad6261
+
+SRC_URI="https://github.com/sschuberth/${PN}/archive/v${PV}.mingw.${PR}.tar.gz
+         https://github.com/gitster/git-htmldocs/archive/${RELEASE_DOC_COMMIT}.tar.gz"
 SRC_DIR="${P}.mingw.${PR}"
+
+PKG_COMPTYPES="bin doc lic"
+
+PKG_CONTENTS[0]="bin libexec share usr
+                 --exclude share/doc"
+PKG_CONTENTS[1]="share/doc
+                 --exclude share/doc/${PN}/${PV}/COPYING"
+PKG_CONTENTS[2]="share/doc/${PN}/${PV}/COPYING"
 
 src_compile() {
   # Mirror the source into the build directory.
@@ -28,4 +40,8 @@ src_install() {
   cd ${B}
   USE_DESTDIR=1
   _MGWPORT_RESTRICT_native_prefix_=1 mgwinstall DESTDIR=${D}/mingw
+
+  HTML_DOC_PATH=${D}/mingw/share/doc/git-doc
+  mkdir -p $HTML_DOC_PATH
+  cp -r ${S}/../git-htmldocs-${RELEASE_DOC_COMMIT}/* $HTML_DOC_PATH
 }
