@@ -1,0 +1,97 @@
+From 0e39a0c0ffa5d3ac4a65c2711c28c9886146385b Mon Sep 17 00:00:00 2001
+From: Doug Kelly <dougk.ff7@gmail.com>
+Date: Thu, 19 Jun 2014 10:37:20 -0500
+Subject: [PATCH 2/2] Add missing wchar prototypes
+
+wchar as provided by cygwin (and packaged by us) has a number of
+missing prototypes -- add the remainder of prototypes, as well as
+the mbstate_t typedef as it is defined in msys-1.0.dll.
+---
+ source/winsup/cygwin/include/wchar.h | 66 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 66 insertions(+)
+
+diff --git a/source/winsup/cygwin/include/wchar.h b/source/winsup/cygwin/include/wchar.h
+index 682ef3f..cb9db0c 100644
+--- a/source/winsup/cygwin/include/wchar.h
++++ b/source/winsup/cygwin/include/wchar.h
+@@ -19,11 +19,77 @@ details. */
+ #define __need_size_t
+ #include <stddef.h>
+ #include <stdio.h>
++#include <stdarg.h>
++
++#define WCHAR_MIN	0
++#define WCHAR_MAX	0xffff
++
++#ifndef WEOF
++#define	WEOF	(wchar_t)(0xFFFF)
++#endif
++
++typedef struct
++{
++  int __count;
++  union
++  {
++    wint_t __wch;
++    unsigned char __wchb[4];
++  } __value;		/* Value so far.  */
++} mbstate_t;
+ 
+ __BEGIN_DECLS
+ 
++wint_t fgetwc (FILE *stream);
++wchar_t *fgetws (wchar_t *ws, int num, FILE *stream);
++wint_t fputwc (wchar_t wc, FILE *stream);
++int fputws (const wchar_t *ws, FILE *stream);
++int fwide (FILE *stream, int mode);
++int fwprintf (FILE *stream, const wchar_t *format, ...);
++int fwscanf (FILE *stream, const wchar_t *format, ...);
++wint_t getwc (FILE *stream);
++wint_t getwchar (void);
++wint_t putwc (wchar_t wc, FILE *stream);
++wint_t putwchar (wchar_t wc);
++int swprintf (wchar_t *ws, size_t len, const wchar_t *format, ...);
++int swscanf (const wchar_t *ws, const wchar_t *format, ...);
++wint_t ungetwc (wint_t wc, FILE *stream);
++int vfwprintf (FILE *stream, const wchar_t *format, va_list arg);
++int vwprintf (const wchar_t *format, va_list arg);
++int wprintf (const wchar_t *format, ...);
++int wscanf (const wchar_t *format, ...);
++double wcstod (const wchar_t *str, wchar_t **endptr);
++long int wcstol (const wchar_t *str, wchar_t **endptr, int base);
++unsigned long int wcstoul (const wchar_t *str, wchar_t **endptr, int base);
++wint_t btowc (int c);
++size_t mbrlen (const char *pmb, size_t max, mbstate_t *ps);
++size_t mbrtowc (wchar_t *pwc, const char *pmb, size_t max, mbstate_t *ps);
++int mbsinit (const mbstate_t *ps);
++size_t mbsrtowcs (wchar_t *dest, const char **src, size_t max, mbstate_t *ps);
++size_t wcrtomb (char *pmb, wchar_t wc, mbstate_t *ps);
+ int wcscmp (const wchar_t *__s1, const wchar_t *__s2);
+ size_t wcslen (const wchar_t *__s1);
++int wctob (wint_t wc);
++size_t wcsrtombs (char *dest, const wchar_t **src, size_t max, mbstate_t* ps);
++wchar_t *wcscat (wchar_t *destination, const wchar_t *source);
++wchar_t *wcschr(const wchar_t*  ws, wchar_t wc);
++int wcscoll (const wchar_t *wcs1, const wchar_t *wcs2);
++wchar_t *wcscpy (wchar_t *destination, const wchar_t *source);
++size_t wcscspn (const wchar_t *wcs1, const wchar_t* wcs2);
++wchar_t *wcsncat (wchar_t *destination, const wchar_t *source, size_t num);
++int wcsncmp (const wchar_t *wcs1, const wchar_t *wcs2, size_t num);
++wchar_t *wcsncpy (wchar_t *destination, const wchar_t *source, size_t num);
++wchar_t *wcspbrk (const wchar_t *wcs1, const wchar_t *wcs2);
++wchar_t *wcsrchr (const wchar_t *ws, wchar_t wc);
++size_t wcsspn (const wchar_t *wcs1, const wchar_t *wcs2);
++wchar_t *wcsstr (const wchar_t *wcs1, const wchar_t *wcs2);
++wchar_t *wcstok (wchar_t *wcs, const wchar_t *delimiters);
++size_t wcsxfrm (wchar_t *destination, const wchar_t *source, size_t num);
++wchar_t *wmemchr(const wchar_t *ptr, wchar_t wc, size_t num);
++int wmemcmp (const wchar_t *ptr1, const wchar_t *ptr2, size_t num);
++wchar_t *wmemcpy (wchar_t *destination, const wchar_t *source, size_t num);
++wchar_t *wmemmove (wchar_t *destination, const wchar_t *source, size_t num);
++wchar_t *wmemset (wchar_t *ptr, wchar_t wc, size_t num);
+ 
+ __END_DECLS
+ 
+-- 
+1.8.4-mingw-3
+

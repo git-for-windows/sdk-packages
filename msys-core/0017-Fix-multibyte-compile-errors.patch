@@ -1,0 +1,684 @@
+From c6acb9b09e647b82ce630b5d8065faa84fc5a049 Mon Sep 17 00:00:00 2001
+From: Doug Kelly <dougk.ff7@gmail.com>
+Date: Thu, 19 Jun 2014 10:35:44 -0500
+Subject: [PATCH 1/2] Fix multibyte compile errors
+
+_read_r and _write_r are defined with the wrong return type compared
+to their headers, which causes two different compile errors. This was
+caused by a mis-define in _types, which leaks out into cygwin...
+We'll fix it in both places for completeness.
+
+Also, winsup's include path takes precedence over newlib; to correct
+the wrong wchar.h getting included, explicitly include the relative
+path everywhere.  Obnoxious, but it does work.
+---
+ source/newlib/libc/include/sys/_types.h | 4 ----
+ source/newlib/libc/reent/readr.c        | 2 +-
+ source/newlib/libc/reent/writer.c       | 2 +-
+ source/newlib/libc/stdlib/local.h       | 4 ++--
+ source/newlib/libc/stdlib/mblen.c       | 2 +-
+ source/newlib/libc/stdlib/mblen_r.c     | 2 +-
+ source/newlib/libc/stdlib/mbrlen.c      | 2 +-
+ source/newlib/libc/stdlib/mbrtowc.c     | 2 +-
+ source/newlib/libc/stdlib/mbsinit.c     | 2 +-
+ source/newlib/libc/stdlib/mbsnrtowcs.c  | 2 +-
+ source/newlib/libc/stdlib/mbsrtowcs.c   | 2 +-
+ source/newlib/libc/stdlib/mbstowcs.c    | 2 +-
+ source/newlib/libc/stdlib/mbstowcs_r.c  | 2 +-
+ source/newlib/libc/stdlib/mbtowc.c      | 2 +-
+ source/newlib/libc/stdlib/mbtowc_r.c    | 2 +-
+ source/newlib/libc/stdlib/wcrtomb.c     | 2 +-
+ source/newlib/libc/stdlib/wcsnrtombs.c  | 2 +-
+ source/newlib/libc/stdlib/wcsrtombs.c   | 2 +-
+ source/newlib/libc/stdlib/wcstod.c      | 2 +-
+ source/newlib/libc/stdlib/wcstol.c      | 2 +-
+ source/newlib/libc/stdlib/wcstoll.c     | 2 +-
+ source/newlib/libc/stdlib/wcstoll_r.c   | 2 +-
+ source/newlib/libc/stdlib/wcstombs.c    | 2 +-
+ source/newlib/libc/stdlib/wcstombs_r.c  | 2 +-
+ source/newlib/libc/stdlib/wcstoul.c     | 2 +-
+ source/newlib/libc/stdlib/wcstoull.c    | 2 +-
+ source/newlib/libc/stdlib/wcstoull_r.c  | 2 +-
+ source/newlib/libc/stdlib/wctob.c       | 2 +-
+ source/newlib/libc/stdlib/wctomb_r.c    | 2 +-
+ source/newlib/libc/string/wcscasecmp.c  | 2 +-
+ source/newlib/libc/string/wcscat.c      | 2 +-
+ source/newlib/libc/string/wcschr.c      | 2 +-
+ source/newlib/libc/string/wcscoll.c     | 2 +-
+ source/newlib/libc/string/wcscpy.c      | 2 +-
+ source/newlib/libc/string/wcsdup.c      | 2 +-
+ source/newlib/libc/string/wcslen.c      | 2 +-
+ source/newlib/libc/string/wcsncasecmp.c | 2 +-
+ source/newlib/libc/string/wcsncat.c     | 2 +-
+ source/newlib/libc/string/wcsncmp.c     | 2 +-
+ source/newlib/libc/string/wcsncpy.c     | 2 +-
+ source/newlib/libc/string/wcsrchr.c     | 2 +-
+ source/newlib/libc/string/wcswidth.c    | 2 +-
+ source/newlib/libc/string/wcwidth.c     | 2 +-
+ source/newlib/libc/string/wmemchr.c     | 2 +-
+ source/newlib/libc/string/wmemcmp.c     | 2 +-
+ source/newlib/libc/string/wmemcpy.c     | 2 +-
+ source/newlib/libc/string/wmemmove.c    | 2 +-
+ source/newlib/libc/string/wmemset.c     | 2 +-
+ 48 files changed, 48 insertions(+), 52 deletions(-)
+
+diff --git a/source/newlib/libc/include/sys/_types.h b/source/newlib/libc/include/sys/_types.h
+index 11d02a1..9b4402c 100644
+--- a/source/newlib/libc/include/sys/_types.h
++++ b/source/newlib/libc/include/sys/_types.h
+@@ -34,12 +34,8 @@ __extension__ typedef long long _off64_t;
+ #endif
+ 
+ #ifndef __ssize_t_defined
+-#if defined(__INT_MAX__) && __INT_MAX__ == 2147483647
+-typedef int _ssize_t;
+-#else
+ typedef long _ssize_t;
+ #endif
+-#endif
+ 
+ #define __need_wint_t
+ #include <stddef.h>
+diff --git a/source/newlib/libc/reent/readr.c b/source/newlib/libc/reent/readr.c
+index e3deca9..7c4bf74 100644
+--- a/source/newlib/libc/reent/readr.c
++++ b/source/newlib/libc/reent/readr.c
+@@ -45,7 +45,7 @@ DESCRIPTION
+ 	<<errno>>.
+ */
+ 
+-long
++_ssize_t
+ _read_r (ptr, fd, buf, cnt)
+      struct _reent *ptr;
+      int fd;
+diff --git a/source/newlib/libc/reent/writer.c b/source/newlib/libc/reent/writer.c
+index ac10286..426df0d 100644
+--- a/source/newlib/libc/reent/writer.c
++++ b/source/newlib/libc/reent/writer.c
+@@ -45,7 +45,7 @@ DESCRIPTION
+ 	<<errno>>.
+ */
+ 
+-long
++_ssize_t
+ _write_r (ptr, fd, buf, cnt)
+      struct _reent *ptr;
+      int fd;
+diff --git a/source/newlib/libc/stdlib/local.h b/source/newlib/libc/stdlib/local.h
+index 4cfc128..f9fe47d 100644
+--- a/source/newlib/libc/stdlib/local.h
++++ b/source/newlib/libc/stdlib/local.h
+@@ -7,8 +7,8 @@ char *	_EXFUN(_gcvt,(struct _reent *, double , int , char *, char, int));
+ 
+ char *__locale_charset(_NOARGS);
+ 
+-#ifndef __mbstate_t_defined
+-#include <wchar.h>
++#ifndef _MBSTATE_T
++#include "../include/wchar.h"
+ #endif
+ 
+ extern int (*__wctomb) (struct _reent *, char *, wchar_t, const char *,
+diff --git a/source/newlib/libc/stdlib/mblen.c b/source/newlib/libc/stdlib/mblen.c
+index ace2388..a185e0f 100644
+--- a/source/newlib/libc/stdlib/mblen.c
++++ b/source/newlib/libc/stdlib/mblen.c
+@@ -45,7 +45,7 @@ effects vary with the locale.
+ 
+ #include <newlib.h>
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include "local.h"
+ 
+ int
+diff --git a/source/newlib/libc/stdlib/mblen_r.c b/source/newlib/libc/stdlib/mblen_r.c
+index c3b5964..af72a5b 100644
+--- a/source/newlib/libc/stdlib/mblen_r.c
++++ b/source/newlib/libc/stdlib/mblen_r.c
+@@ -45,7 +45,7 @@ effects vary with the locale.
+ 
+ #include <newlib.h>
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include "local.h"
+ 
+ int
+diff --git a/source/newlib/libc/stdlib/mbrlen.c b/source/newlib/libc/stdlib/mbrlen.c
+index ac9aa32..f2911e5 100644
+--- a/source/newlib/libc/stdlib/mbrlen.c
++++ b/source/newlib/libc/stdlib/mbrlen.c
+@@ -1,6 +1,6 @@
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/mbrtowc.c b/source/newlib/libc/stdlib/mbrtowc.c
+index e191e11..6d8acb7 100644
+--- a/source/newlib/libc/stdlib/mbrtowc.c
++++ b/source/newlib/libc/stdlib/mbrtowc.c
+@@ -1,6 +1,6 @@
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/mbsinit.c b/source/newlib/libc/stdlib/mbsinit.c
+index e32369a..b5ed637 100644
+--- a/source/newlib/libc/stdlib/mbsinit.c
++++ b/source/newlib/libc/stdlib/mbsinit.c
+@@ -1,5 +1,5 @@
+ #include <reent.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/mbsnrtowcs.c b/source/newlib/libc/stdlib/mbsnrtowcs.c
+index 6729df9..558ab4d 100644
+--- a/source/newlib/libc/stdlib/mbsnrtowcs.c
++++ b/source/newlib/libc/stdlib/mbsnrtowcs.c
+@@ -95,7 +95,7 @@ PORTABILITY
+ 
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/mbsrtowcs.c b/source/newlib/libc/stdlib/mbsrtowcs.c
+index d5137d1..84d7cf0 100644
+--- a/source/newlib/libc/stdlib/mbsrtowcs.c
++++ b/source/newlib/libc/stdlib/mbsrtowcs.c
+@@ -1,6 +1,6 @@
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/mbstowcs.c b/source/newlib/libc/stdlib/mbstowcs.c
+index 334b5f5..742d11e 100644
+--- a/source/newlib/libc/stdlib/mbstowcs.c
++++ b/source/newlib/libc/stdlib/mbstowcs.c
+@@ -51,7 +51,7 @@ effects vary with the locale.
+ 
+ #include <newlib.h>
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ size_t
+ _DEFUN (mbstowcs, (pwcs, s, n),
+diff --git a/source/newlib/libc/stdlib/mbstowcs_r.c b/source/newlib/libc/stdlib/mbstowcs_r.c
+index 3ba8677..8c8b7b3 100644
+--- a/source/newlib/libc/stdlib/mbstowcs_r.c
++++ b/source/newlib/libc/stdlib/mbstowcs_r.c
+@@ -1,5 +1,5 @@
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include "local.h"
+ 
+ size_t
+diff --git a/source/newlib/libc/stdlib/mbtowc.c b/source/newlib/libc/stdlib/mbtowc.c
+index 83b6a0e..eb43e86 100644
+--- a/source/newlib/libc/stdlib/mbtowc.c
++++ b/source/newlib/libc/stdlib/mbtowc.c
+@@ -53,7 +53,7 @@ effects vary with the locale.
+ 
+ #include <newlib.h>
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include "local.h"
+ 
+ int
+diff --git a/source/newlib/libc/stdlib/mbtowc_r.c b/source/newlib/libc/stdlib/mbtowc_r.c
+index 9e81a10..e240dd5 100644
+--- a/source/newlib/libc/stdlib/mbtowc_r.c
++++ b/source/newlib/libc/stdlib/mbtowc_r.c
+@@ -2,7 +2,7 @@
+ #include <stdlib.h>
+ #include <locale.h>
+ #include "mbctype.h"
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <string.h>
+ #include <errno.h>
+ #include "local.h"
+diff --git a/source/newlib/libc/stdlib/wcrtomb.c b/source/newlib/libc/stdlib/wcrtomb.c
+index 60e0d89..b108577 100644
+--- a/source/newlib/libc/stdlib/wcrtomb.c
++++ b/source/newlib/libc/stdlib/wcrtomb.c
+@@ -1,6 +1,6 @@
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/wcsnrtombs.c b/source/newlib/libc/stdlib/wcsnrtombs.c
+index 5f885a4..2c70c9d 100644
+--- a/source/newlib/libc/stdlib/wcsnrtombs.c
++++ b/source/newlib/libc/stdlib/wcsnrtombs.c
+@@ -95,7 +95,7 @@ PORTABILITY
+ 
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <errno.h>
+diff --git a/source/newlib/libc/stdlib/wcsrtombs.c b/source/newlib/libc/stdlib/wcsrtombs.c
+index ea6bd9d..2e5b72c 100644
+--- a/source/newlib/libc/stdlib/wcsrtombs.c
++++ b/source/newlib/libc/stdlib/wcsrtombs.c
+@@ -1,6 +1,6 @@
+ #include <reent.h>
+ #include <newlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ size_t
+ _DEFUN (_wcsrtombs_r, (r, dst, src, len, ps),
+diff --git a/source/newlib/libc/stdlib/wcstod.c b/source/newlib/libc/stdlib/wcstod.c
+index d80454c..956b4f7 100644
+--- a/source/newlib/libc/stdlib/wcstod.c
++++ b/source/newlib/libc/stdlib/wcstod.c
+@@ -117,7 +117,7 @@ Supporting OS subroutines required: <<close>>, <<fstat>>, <<isatty>>,
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <wctype.h>
+ #include <locale.h>
+ #include <math.h>
+diff --git a/source/newlib/libc/stdlib/wcstol.c b/source/newlib/libc/stdlib/wcstol.c
+index e23254d..7452515 100644
+--- a/source/newlib/libc/stdlib/wcstol.c
++++ b/source/newlib/libc/stdlib/wcstol.c
+@@ -121,7 +121,7 @@ No supporting OS subroutines are required.
+ #include <limits.h>
+ #include <wctype.h>
+ #include <errno.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <reent.h>
+ 
+ /*
+diff --git a/source/newlib/libc/stdlib/wcstoll.c b/source/newlib/libc/stdlib/wcstoll.c
+index 75eda9f..656ef53 100644
+--- a/source/newlib/libc/stdlib/wcstoll.c
++++ b/source/newlib/libc/stdlib/wcstoll.c
+@@ -121,7 +121,7 @@ No supporting OS subroutines are required.
+ #include <limits.h>
+ #include <wctype.h>
+ #include <errno.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <reent.h>
+ 
+ #ifndef _REENT_ONLY
+diff --git a/source/newlib/libc/stdlib/wcstoll_r.c b/source/newlib/libc/stdlib/wcstoll_r.c
+index d6baaca..c6292ef 100644
+--- a/source/newlib/libc/stdlib/wcstoll_r.c
++++ b/source/newlib/libc/stdlib/wcstoll_r.c
+@@ -46,7 +46,7 @@
+ #include <limits.h>
+ #include <wctype.h>
+ #include <errno.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <reent.h>
+ 
+ /*
+diff --git a/source/newlib/libc/stdlib/wcstombs.c b/source/newlib/libc/stdlib/wcstombs.c
+index d0ef26e..70130f6 100644
+--- a/source/newlib/libc/stdlib/wcstombs.c
++++ b/source/newlib/libc/stdlib/wcstombs.c
+@@ -52,7 +52,7 @@ effects vary with the locale.
+ 
+ #include <newlib.h>
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ size_t
+ _DEFUN (wcstombs, (s, pwcs, n),
+diff --git a/source/newlib/libc/stdlib/wcstombs_r.c b/source/newlib/libc/stdlib/wcstombs_r.c
+index e74502f..79a5c3f 100644
+--- a/source/newlib/libc/stdlib/wcstombs_r.c
++++ b/source/newlib/libc/stdlib/wcstombs_r.c
+@@ -1,5 +1,5 @@
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include "local.h"
+ 
+ size_t
+diff --git a/source/newlib/libc/stdlib/wcstoul.c b/source/newlib/libc/stdlib/wcstoul.c
+index 44dfca3..08d5cbf 100644
+--- a/source/newlib/libc/stdlib/wcstoul.c
++++ b/source/newlib/libc/stdlib/wcstoul.c
+@@ -121,7 +121,7 @@ PORTABILITY
+ #include <_ansi.h>
+ #include <limits.h>
+ #include <wctype.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <reent.h>
+diff --git a/source/newlib/libc/stdlib/wcstoull.c b/source/newlib/libc/stdlib/wcstoull.c
+index 76caadf..2695980 100644
+--- a/source/newlib/libc/stdlib/wcstoull.c
++++ b/source/newlib/libc/stdlib/wcstoull.c
+@@ -123,7 +123,7 @@ PORTABILITY
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <reent.h>
+ 
+ #ifndef _REENT_ONLY
+diff --git a/source/newlib/libc/stdlib/wcstoull_r.c b/source/newlib/libc/stdlib/wcstoull_r.c
+index abad681..e174534 100644
+--- a/source/newlib/libc/stdlib/wcstoull_r.c
++++ b/source/newlib/libc/stdlib/wcstoull_r.c
+@@ -45,7 +45,7 @@
+ #define _GNU_SOURCE
+ #include <_ansi.h>
+ #include <limits.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <wctype.h>
+ #include <errno.h>
+ #include <reent.h>
+diff --git a/source/newlib/libc/stdlib/wctob.c b/source/newlib/libc/stdlib/wctob.c
+index d97c01f..f9b7a9e 100644
+--- a/source/newlib/libc/stdlib/wctob.c
++++ b/source/newlib/libc/stdlib/wctob.c
+@@ -1,5 +1,5 @@
+ #include <reent.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <stdio.h>
+ #include <string.h>
+ #include <limits.h>
+diff --git a/source/newlib/libc/stdlib/wctomb_r.c b/source/newlib/libc/stdlib/wctomb_r.c
+index 54d0106..187d1ab 100644
+--- a/source/newlib/libc/stdlib/wctomb_r.c
++++ b/source/newlib/libc/stdlib/wctomb_r.c
+@@ -1,7 +1,7 @@
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <locale.h>
+ #include "mbctype.h"
+ #include "local.h"
+diff --git a/source/newlib/libc/string/wcscasecmp.c b/source/newlib/libc/string/wcscasecmp.c
+index f9f169f..e9a30fa 100644
+--- a/source/newlib/libc/string/wcscasecmp.c
++++ b/source/newlib/libc/string/wcscasecmp.c
+@@ -38,7 +38,7 @@ QUICKREF
+ 	wcscasecmp 
+ */
+ 
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <wctype.h>
+ 
+ int
+diff --git a/source/newlib/libc/string/wcscat.c b/source/newlib/libc/string/wcscat.c
+index 54c0b50..779ff73 100644
+--- a/source/newlib/libc/string/wcscat.c
++++ b/source/newlib/libc/string/wcscat.c
+@@ -62,7 +62,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wcscat, (s1, s2),
+diff --git a/source/newlib/libc/string/wcschr.c b/source/newlib/libc/string/wcschr.c
+index fb35d1f..d8d0011 100644
+--- a/source/newlib/libc/string/wcschr.c
++++ b/source/newlib/libc/string/wcschr.c
+@@ -60,7 +60,7 @@ No supporting OS subroutines are required.
+ 
+ #include <_ansi.h>
+ #include <stddef.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wcschr, (s, c),
+diff --git a/source/newlib/libc/string/wcscoll.c b/source/newlib/libc/string/wcscoll.c
+index 0f0513a..dda7dc3 100644
+--- a/source/newlib/libc/string/wcscoll.c
++++ b/source/newlib/libc/string/wcscoll.c
+@@ -36,7 +36,7 @@ PORTABILITY
+ */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ int
+ _DEFUN (wcscoll, (a, b),
+diff --git a/source/newlib/libc/string/wcscpy.c b/source/newlib/libc/string/wcscpy.c
+index ede693d..aef4365 100644
+--- a/source/newlib/libc/string/wcscpy.c
++++ b/source/newlib/libc/string/wcscpy.c
+@@ -58,7 +58,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wcscpy, (s1, s2),
+diff --git a/source/newlib/libc/string/wcsdup.c b/source/newlib/libc/string/wcsdup.c
+index 90be68e..fd6dd53 100644
+--- a/source/newlib/libc/string/wcsdup.c
++++ b/source/newlib/libc/string/wcsdup.c
+@@ -39,7 +39,7 @@ QUICKREF
+ 
+ #include <reent.h>
+ #include <stdlib.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _wcsdup_r (struct _reent *p, const wchar_t *str)
+diff --git a/source/newlib/libc/string/wcslen.c b/source/newlib/libc/string/wcslen.c
+index d671551..d8a91e4 100644
+--- a/source/newlib/libc/string/wcslen.c
++++ b/source/newlib/libc/string/wcslen.c
+@@ -56,7 +56,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ size_t
+ _DEFUN (wcslen, (s),
+diff --git a/source/newlib/libc/string/wcsncasecmp.c b/source/newlib/libc/string/wcsncasecmp.c
+index 1634ca1..01d3be8 100644
+--- a/source/newlib/libc/string/wcsncasecmp.c
++++ b/source/newlib/libc/string/wcsncasecmp.c
+@@ -40,7 +40,7 @@ QUICKREF
+ 	wcsncasecmp
+ */
+ 
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include <wctype.h>
+ 
+ int 
+diff --git a/source/newlib/libc/string/wcsncat.c b/source/newlib/libc/string/wcsncat.c
+index fd77c0c..ff9884a 100644
+--- a/source/newlib/libc/string/wcsncat.c
++++ b/source/newlib/libc/string/wcsncat.c
+@@ -64,7 +64,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wcsncat, (s1, s2, n),
+diff --git a/source/newlib/libc/string/wcsncmp.c b/source/newlib/libc/string/wcsncmp.c
+index 1897f5c..9d750a8 100644
+--- a/source/newlib/libc/string/wcsncmp.c
++++ b/source/newlib/libc/string/wcsncmp.c
+@@ -66,7 +66,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ int
+ _DEFUN (wcsncmp, (s1, s2, n),
+diff --git a/source/newlib/libc/string/wcsncpy.c b/source/newlib/libc/string/wcsncpy.c
+index 533b0ce..5a05070 100644
+--- a/source/newlib/libc/string/wcsncpy.c
++++ b/source/newlib/libc/string/wcsncpy.c
+@@ -37,7 +37,7 @@ No supporting OS subroutines are required.
+ */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wcsncpy, (s1, s2, n),
+diff --git a/source/newlib/libc/string/wcsrchr.c b/source/newlib/libc/string/wcsrchr.c
+index 495d95a..17d7315 100644
+--- a/source/newlib/libc/string/wcsrchr.c
++++ b/source/newlib/libc/string/wcsrchr.c
+@@ -63,7 +63,7 @@ No supporting OS subroutines are required.
+ 
+ #include <_ansi.h>
+ #include <stddef.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wcsrchr, (s, c),
+diff --git a/source/newlib/libc/string/wcswidth.c b/source/newlib/libc/string/wcswidth.c
+index 6c0efe6..17aeb8a 100644
+--- a/source/newlib/libc/string/wcswidth.c
++++ b/source/newlib/libc/string/wcswidth.c
+@@ -36,7 +36,7 @@ PORTABILITY
+ */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #include "local.h"
+ 
+ int
+diff --git a/source/newlib/libc/string/wcwidth.c b/source/newlib/libc/string/wcwidth.c
+index ac5c47f..f724e85 100644
+--- a/source/newlib/libc/string/wcwidth.c
++++ b/source/newlib/libc/string/wcwidth.c
+@@ -93,7 +93,7 @@ PORTABILITY
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ #ifndef _MB_CAPABLE
+ #include <wctype.h> /* iswprint, iswcntrl */
+ #endif
+diff --git a/source/newlib/libc/string/wmemchr.c b/source/newlib/libc/string/wmemchr.c
+index b582b89..b34a5ac 100644
+--- a/source/newlib/libc/string/wmemchr.c
++++ b/source/newlib/libc/string/wmemchr.c
+@@ -66,7 +66,7 @@ No supporting OS subroutines are required.
+ 
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wmemchr, (s, c, n),
+diff --git a/source/newlib/libc/string/wmemcmp.c b/source/newlib/libc/string/wmemcmp.c
+index af9ee32..7beceac 100644
+--- a/source/newlib/libc/string/wmemcmp.c
++++ b/source/newlib/libc/string/wmemcmp.c
+@@ -65,7 +65,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ int
+ _DEFUN (wmemcmp, (s1, s2, n),
+diff --git a/source/newlib/libc/string/wmemcpy.c b/source/newlib/libc/string/wmemcpy.c
+index 748e8e1..037440e 100644
+--- a/source/newlib/libc/string/wmemcpy.c
++++ b/source/newlib/libc/string/wmemcpy.c
+@@ -63,7 +63,7 @@ No supporting OS subroutines are required.
+ 
+ #include <_ansi.h>
+ #include <string.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wmemcpy, (d, s, n),
+diff --git a/source/newlib/libc/string/wmemmove.c b/source/newlib/libc/string/wmemmove.c
+index e20a26a..d0c496d 100644
+--- a/source/newlib/libc/string/wmemmove.c
++++ b/source/newlib/libc/string/wmemmove.c
+@@ -69,7 +69,7 @@ No supporting OS subroutines are required.
+ 
+ #include <_ansi.h>
+ #include <string.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t *
+ _DEFUN (wmemmove, (d, s, n),
+diff --git a/source/newlib/libc/string/wmemset.c b/source/newlib/libc/string/wmemset.c
+index 0af6f91..3cc12e4 100644
+--- a/source/newlib/libc/string/wmemset.c
++++ b/source/newlib/libc/string/wmemset.c
+@@ -62,7 +62,7 @@ No supporting OS subroutines are required.
+  */
+ 
+ #include <_ansi.h>
+-#include <wchar.h>
++#include "../include/wchar.h"
+ 
+ wchar_t	*
+ _DEFUN(wmemset, (s, c, n),
+-- 
+1.8.4-mingw-3
+
