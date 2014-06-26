@@ -13,7 +13,13 @@ PATCH_URI="0001-Tweak-msys_p2w-for-msysgit.patch
            0007-only-override-the-variables-HOMEPATH-and-HOMEDRIVE-i.patch
            0008-Do-not-start-the-fstab-observer-thread.patch
            0009-spawning-of-processes-combine-for-loops-and-resolve-.patch
-           0011-msys.dll-Don-t-pull-user32.dll-friends-just-to-detec.patch"
+           0011-msys.dll-Don-t-pull-user32.dll-friends-just-to-detec.patch
+           0013-msys.dll-basic-Unicode-support.patch
+           0014-msys.dll-support-Unicode-console-input.patch
+           0015-msys.dll-support-ALT-NUMPAD-console-input.patch
+           0016-msys.dll-backport-multibyte-support-functions-from-n.patch
+           0017-Fix-multibyte-compile-errors.patch
+           0018-Add-missing-wchar-prototypes.patch"
 
 PKG_COMPTYPES="bin ext dev doc lic"
 PKG_CONTENTS[0]="bin/msys-1.0.dll
@@ -52,7 +58,7 @@ PKG_CONTENTS[4]="share/doc/MSYS/COPYING
 
 src_compile() {
   cd ${B}
-  mgwconf
+  mgwconf --enable-newlib-mb
 
   W32API_CPPFLAGS=-I/usr/include/w32api \
   W32API_LDFLAGS=-L/usr/lib/w32api \
