@@ -1,0 +1,35 @@
+From e5827f72b3c02ea6bf64900d23562b36f1ce9dd2 Mon Sep 17 00:00:00 2001
+From: Karsten Blees <blees@dcon.de>
+Date: Sat, 23 Aug 2014 00:13:10 +0200
+Subject: [PATCH] create hard links instead of symlinks
+
+MSYS' symlink() emulation creates copies, so use hard links instead.
+
+Picked from upstream's msys-lndir-1.0.1-2-msys-1.0.13 package.
+
+Signed-off-by: Karsten Blees <blees@dcon.de>
+---
+ lndir.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/lndir.c b/lndir.c
+index 7dc7e46..73eac71 100644
+--- a/lndir.c
++++ b/lndir.c
+@@ -314,8 +314,13 @@ dodir (const char *fn,		/* name of "from" directory, either absolute or
+ 	    }
+ 	    else
+ 		sympath = buf;
++#ifdef __MSYS__
++	    if (link (sympath, dp->d_name) < 0)
++		mperror (dp->d_name);
++#else
+ 	    if (symlink (sympath, dp->d_name) < 0)
+ 		mperror (dp->d_name);
++#endif
+ 	}
+     }
+ 
+-- 
+2.1.0.msysgit.0
+

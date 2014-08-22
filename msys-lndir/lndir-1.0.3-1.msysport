@@ -1,7 +1,8 @@
 DESCRIPTION="X.Org recursive directory symlink tool"
 SRC_URI="http://xorg.freedesktop.org/releases/individual/util/${P}.tar.bz2"
 
-PATCH_URI="0001-de-X-ify-lndir.c.patch"
+PATCH_URI="0001-de-X-ify-lndir.c.patch
+           0002-create-hard-links-instead-of-symlinks.patch"
 
 PKG_COMPTYPES="bin doc lic"
 PKG_CONTENTS[0]="bin"
